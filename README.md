@@ -61,7 +61,7 @@ Django + nginx + gunicorn гайд по деплою для начинающих
 Для создания в вашем окружении на локальной машине вводите: pip freeze > requirements.txt
 
 Апдейтим `settings.py`  
-`
+```
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -72,13 +72,14 @@ DATABASES = {
         'PORT': '',
     },
 }`
-
-`STATIC_URL = '/static/'`  
-`STATIC_ROOT = os.path.join(BASE_DIR, "static_root")`      #в эту папку скопируется вся статика, после команды 'collectstatic' и ее будем указывать в настройках nginx)  	
-`STATICFILES_DIRS = (os.path.join(BASE_DIR, "static"), )  `		
-`MEDIA_ROOT = os.path.join(BASE_DIR, "media")`  
-`MEDIA_URL = '/media/'`  
-
+```
+```
+STATIC_URL = '/static/'  
+STATIC_ROOT = os.path.join(BASE_DIR, "static_root")     #в эту папку скопируется вся статика, после команды 'collectstatic' и ее будем указывать в настройках nginx)  	
+STATICFILES_DIRS = (os.path.join(BASE_DIR, "static"), )		
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_URL = '/media/'  
+```
 удаляем все миграции из наших приложений, если они есть и создаем таблицы для каждого приложения  
 `python manage.py makemigrations ваше_приложение`  # и так для каждого приложения
 
@@ -93,25 +94,28 @@ DATABASES = {
 `sudo vim /etc/nginx/sites-available/default`   # можно использовать любой удобный редактор, я привык к vim
 
 Записываем в этот файл:  
-
-`server {
+```
+server {
     listen 80;
     server_name ваш_внешний_ip_инстанса;
     access_log  /var/log/nginx/example.log;
+    
     location /media  {
-        alias /home/ubuntu/Project/project/media;	#Указывайте ваш путь до папок меди и статик рут, чтобы узнать полный путь до 								каталога, перейдите в него и введите "pwd"
+        alias /home/ubuntu/Project/project/media;	  #Указывайте ваш путь до папок меди и статик рут, чтобы узнать полный                                                        путь до каталога, перейдите в него и введите "pwd"
     }
+    
     location /static {
         alias /home/ubuntu/Project/project/static_root;
     }
+    
     location / {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $server_name;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
-}`
-
+}
+```
 перезапускаем nginx  
 `sudo service nginx restart`
 
@@ -125,18 +129,22 @@ DATABASES = {
 `sudo vim /etc/supervisor/conf.d/project.conf`
 
 Записываем в файл `project.conf`  
-`[program:project]
-command=/home/ubuntu/venv/bin/gunicorn --bind localhost:8000 project.wsgi:application         #Так же проверьте путь до каталога и имя 													вашего проекта
+```
+[program:project]
+command=/home/ubuntu/venv/bin/gunicorn --bind localhost:8000 project.wsgi:application     #Так же проверьте путь до                                                                                                  #каталога и имя 	вашего проекта
 enviroment=PYTHONPATH=/home/ubuntu/venv/bin
 directory=/home/ubuntu/Diabetes_project/project
-user=ubuntu`  
-
+user=ubuntu  
+```
 Управление supervisor 
-`sudo supervisorctl reload`                   #при последующем использовании сервера, часто будете использововать reload,
+```
+sudo supervisorctl reload                   #при последующем использовании сервера, часто будете использововать reload,
                                             #для перезагрузки и внесения изменений
-`sudo supervisorctl reread`  
-`sudo supervisorctl update`  
-`sudo supervisorctl start django_project`  
+sudo supervisorctl status                   #статус процесса
+sudo supervisorctl reread                   #заного считать файл конфигурации
+sudo supervisorctl update                   #пишем после добавления нового процесса в конфигурацию
+sudo supervisorctl start django_project     #запустить проект, указанный в конфиге, у вас может быть другое название
+```
 
 Теперь можете перезагрузить инстанс и проверить работу supervisor
 `sudo reboot`
@@ -145,10 +153,9 @@ user=ubuntu`
 Добавляем `404` и `500` страницы
 создаем в папке темплейтов `404.html` и `500.html`, форматируем по желанию
 Далее во `views` который лежит в основной папке проекта, рядом с `settings` добавляем следующие функции
-`
+```
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-
 
 def handler404(request):
     response = render_to_response('404.html', {},
@@ -161,9 +168,10 @@ def handler500(request):
                                   context_instance=RequestContext(request))
     response.status_code = 500
     return response
-`  
+```  
+
 В `settings.py` меняем параметр `DEBUG = False`, на `DEBUG = True`  
-и добавляем `ALLOWED_HOSTS = ['паблик_айпи_инстанса', 'паблик_днс_инстанса']`
+и добавляем `ALLOWED_HOSTS = ['instance_public_ip', 'instance_public_dns']`  #public_ip и public_dnc указаны в настройках инстансов
 
 
 
