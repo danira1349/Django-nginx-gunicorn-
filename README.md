@@ -17,53 +17,51 @@ Django + nginx + gunicorn гайд по деплою для начинающих
 
 `ssh -v -i ваш_ключ.pem ubuntu@ваш_айпи`    #айпи указан в настройках инстанса
 жмем "y" и мы попадаем на наш инстанс
-`
+
 Апгрейдим систему
-sudo apt-get update
-sudo apt-get upgrade
+`sudo apt-get update`
+`sudo apt-get upgrade`
 
-`
-устанавливаем нужные инструменты
-sudo apt-get install python3
-sudo apt-get install python3-setuptools
-sudo apt-get install nginx
-`
-Далее я все манипуляции производил в /home/ubuntu
-`
-Устанавливаем виртуальное окружение с python3
-virtualenv --python=python3 --always-copy venv
-source venv/bin/activate
-`
+Устанавливаем нужные инструменты  
+`sudo apt-get install python3`  
+`sudo apt-get install python3-setuptools`  
+`sudo apt-get install nginx`  
+
+Далее я все манипуляции производил в `/home/ubuntu`
+Устанавливаем виртуальное окружение с python3  
+`virtualenv --python=python3 --always-copy venv`
+`source venv/bin/activate`
+
 Устанавлием gunicorn
-pip install gunicorn
-`
-Устанавливаем базу данных(postgresql)
-sudo apt-get install -y postgresql postgresql-contrib libpq-dev python3-dev postgresql-server-dev-all
-`
-Создаем пользователя и базу для нашего проекта
-sudo su - postgres
-createuser --interactive -P
-Enter name of role to add: db_user
-Enter password for new role:
-Enter it again:
-Shall the new role be a superdjuser? (y/n) n
-Shall the new role be allowed to create databases? (y/n) n
-Shall the new role be allowed to create more new roles? (y/n) n
-createdb --owner db_user db_name
-logout
+`pip install gunicorn`
 
-`
-Далее нам нужно клонировать проект в инстанс. Я предварительно загрузил проект на гитхаб и далее его клонировал в директорию /home/ubuntu
-sudo apt-get install git
-git clone https://github.com/ваш_юзер/ваш_проект.git  (ссылка так же будет в корне вашего проекта на гитхабе)
-`
+Устанавливаем базу данных(postgresql)  
+
+`sudo apt-get install -y postgresql postgresql-contrib libpq-dev python3-dev postgresql-server-dev-all`
+
+Создаем пользователя и базу для нашего проекта
+`sudo su - postgres`  
+`createuser --interactive -P`  
+`Enter name of role to add: db_user`  
+`Enter password for new role:`  
+`Enter it again:`  
+`Shall the new role be a superdjuser? (y/n) n`  
+`Shall the new role be allowed to create databases? (y/n) n`  
+`Shall the new role be allowed to create more new roles? (y/n) n`  
+`createdb --owner db_user db_name`  
+`logout`  
+
+Далее нам нужно клонировать проект в инстанс. Я предварительно загрузил проект на гитхаб и клонировал в директорию `/home/ubuntu`  
+`sudo apt-get install git`  
+`git clone https://github.com/ваш_юзер/ваш_проект.git`  # ссылка так же будет в корне вашего проекта на гитхабе
+
 Устанавливаем зависимости 
-pip install -r requirements.txt
+`pip install -r requirements.txt`  
 Если в вашем проекте нет этого файла, создайте его и положите в репозиторий, в нем отображаются все нужные инструменты которые используются в вашем проекте
 Для создания в вашем окружении на локальной машине вводите: pip freeze > requirements.txt
-`
-Апдейтим settings.py
 
+Апдейтим `settings.py`  
+`
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -73,97 +71,81 @@ DATABASES = {
         'HOST': 'localhost',
         'PORT': '',
     },
-}
+}`
 
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, "static_root")      (в эту папку скопируется вся статика, после команды 'collectstatic' и ее будем указывать в настройках nginx)	
+`STATIC_URL = '/static/'`  
+`STATIC_ROOT = os.path.join(BASE_DIR, "static_root")`      #в эту папку скопируется вся статика, после команды 'collectstatic' и ее будем указывать в настройках nginx)  	
+`STATICFILES_DIRS = (os.path.join(BASE_DIR, "static"), )  `		
+`MEDIA_ROOT = os.path.join(BASE_DIR, "media")`  
+`MEDIA_URL = '/media/'`  
 
-STATICFILES_DIRS = (os.path.join(BASE_DIR, "static"), )		
+удаляем все миграции из наших приложений, если они есть и создаем таблицы для каждого приложения  
+`python manage.py makemigrations ваше_приложение`  # и так для каждого приложения
 
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-MEDIA_URL = '/media/'
+После этого  
+`python manage.py migrate`  
+`python manage.py createsuperuser` #стадартное создание админа  
 
-
-`
-удаляем все миграции из наших приложений, если они есть и создаем таблицы для каждого приложения
-python manage.py makemigrations ваше_приложение  (и так для каждого приложения)
---
-После этого
-python manage.py migrate
-python manage.py createsuperuser (стадартное создание админа)
-
-`
 создаем статик рут папку
-python manage.py collectstatic
-`
+`python manage.py collectstatic`
 
-Теперь настраиваем nginx:
-sudo vim /etc/nginx/sites-available/default    (можно использовать любой удобный редактор, я привык к vim)
+Теперь настраиваем nginx:  
+`sudo vim /etc/nginx/sites-available/default`   # можно использовать любой удобный редактор, я привык к vim
 
-Записываем в этот файл :
+Записываем в этот файл:  
 
-server {
+`server {
     listen 80;
     server_name ваш_внешний_ip_инстанса;
     access_log  /var/log/nginx/example.log;
-
     location /media  {
         alias /home/ubuntu/Project/project/media;	#Указывайте ваш путь до папок меди и статик рут, чтобы узнать полный путь до 								каталога, перейдите в него и введите "pwd"
     }
-
     location /static {
         alias /home/ubuntu/Project/project/static_root;
     }
-
     location / {
-
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $server_name;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
-}
-`
+}`
 
-перезапускаем nginx 
-sudo service nginx restart
-`
+перезапускаем nginx  
+`sudo service nginx restart`
 
-заходим в папку проекта и запускаем gunicorn
-gunicorn project.wsgi:application   			#напоминаю, "project" - папка проекта, у вас может быть другое название
-`
+заходим в папку проекта и запускаем gunicorn  
+`gunicorn project.wsgi:application`   			#напоминаю, "project" - папка проекта, у вас может быть другое название
+
 проверяем работу в браузере, вводим ip вашего инстанса
-`
-Теперь нам нужно автоматизировать работу сервера, чтобы он запускался автоматически после ребута инстанса, для этого нам понадобится supervisor
 
-sudo apt-get install supervisor
-sudo vim /etc/supervisor/conf.d/project.conf
+Теперь нам нужно автоматизировать работу сервера, чтобы он запускался автоматически после ребута инстанса, для этого нам понадобится supervisor  
+`sudo apt-get install supervisor`  
+`sudo vim /etc/supervisor/conf.d/project.conf`
 
-Записываем в файл project.conf
-
-[program:project]
+Записываем в файл `project.conf`  
+`[program:project]
 command=/home/ubuntu/venv/bin/gunicorn --bind localhost:8000 project.wsgi:application         #Так же проверьте путь до каталога и имя 													вашего проекта
 enviroment=PYTHONPATH=/home/ubuntu/venv/bin
 directory=/home/ubuntu/Diabetes_project/project
-user=ubuntu
-`
+user=ubuntu`  
+
 Управление supervisor 
-sudo supervisorctl reload                   #при последующем использовании сервера, часто будете использововать reload,
+`sudo supervisorctl reload`                   #при последующем использовании сервера, часто будете использововать reload,
                                             #для перезагрузки и внесения изменений
-sudo supervisorctl reread
-sudo supervisorctl update
-sudo supervisorctl start django_project
+`sudo supervisorctl reread`  
+`sudo supervisorctl update`  
+`sudo supervisorctl start django_project`  
 
-`
 Теперь можете перезагрузить инстанс и проверить работу supervisor
-sudo reboot
+`sudo reboot`
 
+Так же, настройки которые необходимо произвести для боевого сервера
+Добавляем `404` и `500` страницы
+создаем в папке темплейтов `404.html` и `500.html`, форматируем по желанию
+Далее во `views` который лежит в основной папке проекта, рядом с `settings` добавляем следующие функции
 `
-Так же, настройки которые необходимо произвести для боевого сервера`
-Добавляем 404 и 500 страницы
-создаем в папке темплейтов 404.html и 500.html, форматируем по желанию
-Далее во views который лежит в основной папке проекта, рядом с settings добавляем следующие функции
-
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 
@@ -174,15 +156,14 @@ def handler404(request):
     response.status_code = 404
     return response
 
-
 def handler500(request):
     response = render_to_response('500.html', {},
                                   context_instance=RequestContext(request))
     response.status_code = 500
     return response
-`
-В settings.py меняем параметр DEBUG = False, на DEBUG = True
-и добавляем ALLOWED_HOSTS = ['паблик_айпи_инстанса', 'паблик_днс_инстанса']
+`  
+В `settings.py` меняем параметр `DEBUG = False`, на `DEBUG = True`  
+и добавляем `ALLOWED_HOSTS = ['паблик_айпи_инстанса', 'паблик_днс_инстанса']`
 
 
 
