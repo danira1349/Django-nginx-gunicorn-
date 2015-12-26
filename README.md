@@ -141,7 +141,7 @@ user=ubuntu
 sudo supervisorctl reload                   #при последующем использовании сервера, часто будете использововать reload,
                                             #для перезагрузки и внесения изменений
 sudo supervisorctl status                   #статус процесса
-sudo supervisorctl reread                   #заного считать файл конфигурации
+sudo supervisorctl reread                   #заново считать файл конфигурации
 sudo supervisorctl update                   #пишем после добавления нового процесса в конфигурацию
 sudo supervisorctl start django_project     #запустить проект, указанный в конфиге, у вас может быть другое название
 ```
