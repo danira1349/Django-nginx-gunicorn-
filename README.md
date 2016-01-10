@@ -101,8 +101,9 @@ server {
     access_log  /var/log/nginx/example.log;
     
     location /media  {
-        alias /home/ubuntu/Project/project/media;	  
-        #Указывайте ваш путь до папок меди и статик рут, чтобы узнать полный                                                        путь до каталога, перейдите в него и введите "pwd"
+        alias /home/ubuntu/Project/project/media;  	  
+        #Указывайте ваш путь до папок медиа и статик рут  
+        чтобы узнать полный путь до каталога, перейдите в него и введите "pwd"
     }
     
     location /static {
@@ -121,7 +122,7 @@ server {
 `sudo service nginx restart`
 
 заходим в папку проекта и запускаем gunicorn  
-`gunicorn project.wsgi:application`   			#напоминаю, "project" - папка проекта, у вас может быть другое название
+`gunicorn project.wsgi:application` #напоминаю, "project" - папка проекта, у вас может быть другое название
 
 проверяем работу в браузере, вводим ip вашего инстанса
 
@@ -130,10 +131,11 @@ server {
 `sudo vim /etc/supervisor/conf.d/project.conf`
 
 Записываем в файл `project.conf`  
+В файле проверьте пути до каталогов с проектом и virtualenv, имя проекта, имя юзера  
+
 ```
 [program:project]
-command=/home/ubuntu/venv/bin/gunicorn --bind localhost:8000 project.wsgi:application     
-#Так же проверьте путь до                                                                                                  #каталога и имя 	вашего проекта
+command=/home/ubuntu/venv/bin/gunicorn --bind localhost:8000 project.wsgi:application       
 enviroment=PYTHONPATH=/home/ubuntu/venv/bin
 directory=/home/ubuntu/Diabetes_project/project
 user=ubuntu  
@@ -145,7 +147,7 @@ sudo supervisorctl reload                   #при последующем ис�
 sudo supervisorctl status                   #статус процесса
 sudo supervisorctl reread                   #заново считать файл конфигурации
 sudo supervisorctl update                   #пишем после добавления нового процесса в конфигурацию
-sudo supervisorctl start django_project     #запустить проект, указанный в конфиге, у вас может быть другое название
+sudo supervisorctl start project     #запустить проект, указанный в конфиге, у вас может быть другое название
 ```
 
 Теперь можете перезагрузить инстанс и проверить работу supervisor
@@ -173,7 +175,7 @@ def handler500(request):
 ```  
 
 В `settings.py` меняем параметр `DEBUG = False`, на `DEBUG = True`  
-и добавляем `ALLOWED_HOSTS = ['instance_public_ip', 'instance_public_dns']`  #public_ip и public_dnc указаны в настройках инстансов
+и добавляем `ALLOWED_HOSTS = ['instance_public_ip', 'instance_public_dns']`  #public_ip и public_dns указаны в настройках инстансов
 
 
 
