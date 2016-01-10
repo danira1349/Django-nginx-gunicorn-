@@ -101,7 +101,8 @@ server {
     access_log  /var/log/nginx/example.log;
     
     location /media  {
-        alias /home/ubuntu/Project/project/media;	  #Указывайте ваш путь до папок меди и статик рут, чтобы узнать полный                                                        путь до каталога, перейдите в него и введите "pwd"
+        alias /home/ubuntu/Project/project/media;	  
+        #Указывайте ваш путь до папок меди и статик рут, чтобы узнать полный                                                        путь до каталога, перейдите в него и введите "pwd"
     }
     
     location /static {
@@ -131,7 +132,8 @@ server {
 Записываем в файл `project.conf`  
 ```
 [program:project]
-command=/home/ubuntu/venv/bin/gunicorn --bind localhost:8000 project.wsgi:application     #Так же проверьте путь до                                                                                                  #каталога и имя 	вашего проекта
+command=/home/ubuntu/venv/bin/gunicorn --bind localhost:8000 project.wsgi:application     
+#Так же проверьте путь до                                                                                                  #каталога и имя 	вашего проекта
 enviroment=PYTHONPATH=/home/ubuntu/venv/bin
 directory=/home/ubuntu/Diabetes_project/project
 user=ubuntu  
